@@ -1,0 +1,175 @@
+[
+  {
+    "type": "heading",
+    "defaultValue": "PebbleMetro Config",
+    "size": 1
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Search Stops"
+      },
+      {
+        "type": "input",
+        "label": "Status",
+        "id": "search_status"
+      },
+      {
+        "type": "input",
+        "id": "search_text"
+      },
+      {
+        "type": "button",
+        "id": "search_button",
+        "primary": true,
+        "defaultValue": "Search"
+      },
+      {
+        "type": "radiogroup",
+        "id": "search_radio",
+        "label": "Results",
+        "options": [
+          { 
+            "label": "...", 
+            "value": "route-type_stop-id_stop-name" 
+          }
+        ]
+      },
+      {
+        "type": "radiogroup",
+        "id": "search_set_to",
+        "label": "Set to favorite",
+        "options": [
+          { 
+            "label": "Favorite 1", 
+            "value": "search_set_to_1" 
+          },
+          { 
+            "label": "Favorite 2", 
+            "value": "search_set_to_2" 
+          },
+          {
+            "label": "Favorite 3", 
+            "value": "search_set_to_3" 
+          }
+        ],
+        "defaultValue": "search_set_to_1"
+      },
+      {
+        "type": "button",
+        "id": "search_radio_select",
+        "primary": true,
+        "defaultValue": "Select Result"
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Favorite Stops",
+        "value": "unchanged"
+      },
+      {
+        "type": "section",
+        "items": [
+          {
+            "type": "heading",
+            "defaultValue": "Stop 1",
+            "value": "unchanged"
+          },
+          {
+            "type": "input",
+            "label": "Name",
+            "group": "stop_1",
+            "messageKey": "SETTINGS_STOP_1_NAME",
+            "id": "SETTINGS_STOP_1_NAME"
+          },
+          {
+            "type": "input",
+            "label": "Transport Type",
+            "group": "stop_1",
+            "messageKey": "SETTINGS_STOP_1_TYPE",
+            "id": "SETTINGS_STOP_1_TYPE"
+          },
+          {
+            "type": "input",
+            "label": "Stop ID",
+            "group": "stop_1",
+            "messageKey": "SETTINGS_STOP_1_STOP",
+            "id": "SETTINGS_STOP_1_STOP"
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "items": [
+          {
+            "type": "heading",
+            "defaultValue": "Stop 2",
+            "value": "unchanged"
+          },
+          {
+            "type": "input",
+            "label": "Name",
+            "group": "stop_2",
+            "messageKey": "SETTINGS_STOP_2_NAME",
+            "id": "SETTINGS_STOP_2_NAME"
+          },
+          {
+            "type": "input",
+            "label": "Transport Type",
+            "group": "stop_2",
+            "messageKey": "SETTINGS_STOP_2_TYPE",
+            "id": "SETTINGS_STOP_2_TYPE"
+          },
+          {
+            "type": "input",
+            "label": "Stop ID",
+            "group": "stop_2",
+            "messageKey": "SETTINGS_STOP_2_STOP",
+            "id": "SETTINGS_STOP_2_STOP"
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "items": [
+          {
+            "type": "heading",
+            "defaultValue": "Stop 3",
+            "value": "unchanged"
+          },
+          {
+            "type": "input",
+            "label": "Name",
+            "group": "stop_3",
+            "messageKey": "SETTINGS_STOP_3_NAME",
+            "id": "SETTINGS_STOP_3_NAME"
+          },
+          {
+            "type": "input",
+            "label": "Transport Type",
+            "group": "stop_2",
+            "messageKey": "SETTINGS_STOP_3_TYPE",
+            "id": "SETTINGS_STOP_3_TYPE"
+          },
+          {
+            "type": "input",
+            "label": "Stop ID",
+            "group": "stop_3",
+            "messageKey": "SETTINGS_STOP_3_STOP",
+            "id": "SETTINGS_STOP_3_STOP"
+          }
+        ]
+      }
+    ]
+},
+  {
+    "type": "submit",
+    "defaultValue": "Save"
+  }
+]

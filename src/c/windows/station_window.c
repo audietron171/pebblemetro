@@ -28,6 +28,10 @@ static char *stopName;
 static AppSync s_sync;
 static uint8_t s_sync_buffer[200];
 
+// Refresh timer (ms)
+static uint32_t refresh_timeout_ms = 10*1000;
+static AppTimer *refresh_timer_handle;
+
 // Post strings to log
 static void logger(char *message){
   static char s_buff[32];
@@ -97,17 +101,19 @@ static void sync_error_callback(DictionaryResult dict_error,
 
 // Request stop data for stop
 static void request_stop_info(){
+  logger("Requesting data");
   DictionaryIterator *iter;
   app_message_outbox_begin(&iter);
 
-  if (!iter) {
-    return;
+  // Request data for saved slot when ready
+  if (iter) {
+    dict_write_int(iter, PTV_REQ_STOP_NUMBER, &stopNumber, sizeof(int32_t), false);
+    dict_write_end(iter);
+    app_message_outbox_send();
   }
 
-  // Provide route_type (train etc), stop_id and direction_id when requesting data
-  dict_write_int(iter, PTV_REQ_STOP_NUMBER, &stopNumber, sizeof(int32_t), false);
-  dict_write_end(iter);
-  app_message_outbox_send();
+  // Refresh data automatically
+  refresh_timer_handle = app_timer_register(refresh_timeout_ms, request_stop_info, NULL);
 }
 
 // Unload window and return to stop selection
@@ -126,6 +132,8 @@ void station_window_unload(Window *window) {
 
   window_destroy(window);
   s_station_window = NULL;
+
+  app_timer_cancel(refresh_timer_handle);
 }
 
 // Drawing (Bolded lines)
@@ -247,9 +255,9 @@ void station_window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(s_third_stop_dest_layer));
 
   Tuplet initial_values[] = {
-    TupletCString(PTV_1_DEST_KEY, "loading..."),
-    TupletCString(PTV_2_DEST_KEY, "loading..."),
-    TupletCString(PTV_3_DEST_KEY, "loading..."),
+    TupletCString(PTV_1_DEST_KEY, "..."),
+    TupletCString(PTV_2_DEST_KEY, "..."),
+    TupletCString(PTV_3_DEST_KEY, "..."),
     TupletCString(PTV_1_TIME_KEY, "..."),
     TupletCString(PTV_2_TIME_KEY, "..."),
     TupletCString(PTV_3_TIME_KEY, "..."),
@@ -261,7 +269,8 @@ void station_window_load(Window *window) {
 		initial_values, ARRAY_LENGTH(initial_values),
 		sync_tuple_changed_callback, sync_error_callback, NULL);
 
-  request_stop_info();
+  // Start requesting data
+  refresh_timer_handle = app_timer_register(10, request_stop_info, NULL);
 }
 
 // Store stop number and load station window

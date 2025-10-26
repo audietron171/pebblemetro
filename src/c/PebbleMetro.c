@@ -24,13 +24,6 @@ static void logger(char *message){
 // A struct for our specific settings (see main.h)
 static ClaySettings settings;
 
-// Initialize the default settings
-static void default_settings() {
-  strncpy(settings.STOP_1_NAME, "", sizeof(settings.STOP_1_NAME) - 1);
-  strncpy(settings.STOP_2_NAME, "", sizeof(settings.STOP_2_NAME) - 1);
-  strncpy(settings.STOP_3_NAME, "", sizeof(settings.STOP_3_NAME) - 1);
-}
-
 static void load_window_stop_1() {
   app_message_deregister_callbacks();
   int stopId = 1;
@@ -47,22 +40,40 @@ static void load_window_stop_3() {
   station_window_push(stopId, settings.STOP_3_NAME);
 }
 
+const char* get_stop_type(int type) {
+    switch (type) {
+      case 0:
+        return "Train";
+      case 1:
+        return "Tram";
+      case 2:
+        return "Bus";
+      case 3:
+        return "V/Line";
+      case 4:
+        return "Night Bus";
+      default:
+        return "PTV Stop";
+    }
+}
+
 static void main_window_load(Window *window) {
   
   APP_LOG(APP_LOG_LEVEL_INFO, "Loading main...");
+
   s_first_menu_items[0] = (SimpleMenuItem) {
     .title = settings.STOP_1_NAME,
-    .subtitle = "Stop 1",
+    .subtitle = settings.STOP_1_TYPE,
     .callback = load_window_stop_1
   };
-    s_first_menu_items[1] = (SimpleMenuItem) {
+  s_first_menu_items[1] = (SimpleMenuItem) {
     .title = settings.STOP_2_NAME,
-    .subtitle = "Stop 2",
+    .subtitle = settings.STOP_2_TYPE,
     .callback = load_window_stop_2
   };
-    s_first_menu_items[2] = (SimpleMenuItem) {
+  s_first_menu_items[2] = (SimpleMenuItem) {
     .title = settings.STOP_3_NAME,
-    .subtitle = "Stop 3",
+    .subtitle = settings.STOP_3_TYPE,
     .callback = load_window_stop_3
   };
 
@@ -106,6 +117,16 @@ void draw_home_screen() {
   window_stack_push(s_main_window, true);
 }
 
+// Initialize the default settings
+static void default_settings() {
+  strncpy(settings.STOP_1_NAME, "...", sizeof(settings.STOP_1_NAME) - 1);
+  strncpy(settings.STOP_2_NAME, "...", sizeof(settings.STOP_2_NAME) - 1);
+  strncpy(settings.STOP_3_NAME, "...", sizeof(settings.STOP_3_NAME) - 1);
+  strncpy(settings.STOP_1_TYPE, get_stop_type(9999), sizeof(settings.STOP_1_TYPE) - 1);
+  strncpy(settings.STOP_2_TYPE, get_stop_type(9999), sizeof(settings.STOP_2_TYPE) - 1);
+  strncpy(settings.STOP_3_TYPE, get_stop_type(9999), sizeof(settings.STOP_3_TYPE) - 1);
+}
+
 static void load_settings() {
   // Load the default settings
   default_settings();
@@ -123,24 +144,30 @@ static void config_load_handler(DictionaryIterator *iter, void *context){
   char *dest_ptrs[] = {
       settings.STOP_1_NAME,
       settings.STOP_2_NAME,
-      settings.STOP_3_NAME
+      settings.STOP_3_NAME,
   };
   size_t dest_sizes[] = {
       sizeof(settings.STOP_1_NAME),
       sizeof(settings.STOP_2_NAME),
       sizeof(settings.STOP_3_NAME)
   };
+  char *type_ptrs[] = {
+      settings.STOP_1_TYPE,
+      settings.STOP_2_TYPE,
+      settings.STOP_3_TYPE,
+  };
 
   // Setting keys
   int stationNameKeys[STOP_COUNT] = { SETTINGS_STOP_1_NAME, SETTINGS_STOP_2_NAME, SETTINGS_STOP_3_NAME };
+  int stationTypeKeys[STOP_COUNT] = { SETTINGS_STOP_1_TYPE, SETTINGS_STOP_2_TYPE, SETTINGS_STOP_3_TYPE };
 
   // Checking if setting has been updated
   bool changed = false;
   for (int i = 0; i < STOP_COUNT; i++) {
-    // Check if the key exists in the incoming message
+    // Check for updates to station names
     Tuple *station_name_tuple = dict_find(iter, stationNameKeys[i]);
     if (station_name_tuple){
-      logger("Found setting");
+      logger("Found station name setting");
 
       // Update setting
       char* name = station_name_tuple->value->cstring;
@@ -150,8 +177,20 @@ static void config_load_handler(DictionaryIterator *iter, void *context){
       APP_LOG(APP_LOG_LEVEL_INFO, "%s", dest_ptr);
 
       changed = true;
-    } else {
-      logger("Missed setting?");
+    }
+
+    // Check for updates to station types
+    Tuple *station_type_tuple = dict_find(iter, stationTypeKeys[i]);
+    if (station_type_tuple){
+      logger("Found station type setting");
+
+      // Update setting
+      int type = (int)station_type_tuple->value->int32;
+      char* type_ptr = type_ptrs[i];
+      size_t type_size = dest_sizes[i];
+      strncpy(type_ptr, get_stop_type(type), type_size - 1);
+
+      changed = true;
     }
   }
 

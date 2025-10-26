@@ -270,8 +270,12 @@ Pebble.addEventListener('webviewclosed', function (e) {
     // Save value to localstorage (for Pebblekit)
     localStorage.setItem(setting, value);
 
-    // Manually send stop names to watch
-    if (setting.toLowerCase().includes('_name') && value != null) {
+    // Manually send intested settings to watch
+    if ((setting.includes('_NAME') || setting.includes('_TYPE')) && value != null) {
+      // Must convert to integer
+      if (setting.includes('_TYPE'))
+        value = parseInt(value)
+
       watchSettings[setting] = value
     }
   }

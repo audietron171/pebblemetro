@@ -83,6 +83,7 @@ static void sync_tuple_changed_callback(const uint32_t key,
       break;
     case PTV_NEXT_TIME_KEY:
       text_layer_set_text(s_next_stop_time_layer, new_tuple->value->cstring);
+      break;
     case DATA_ACK:
       // Value of "1" means phone sent data and has more, request it
       if (new_tuple->value->int32 == 1){
@@ -120,10 +121,13 @@ static void request_stop_info(){
 void station_window_unload(Window *window) {
   app_sync_deinit(&s_sync);
   text_layer_destroy(s_first_stop_dest_layer);
-  text_layer_destroy(s_second_stop_time_layer);
-  text_layer_destroy(s_third_stop_time_layer);
+  text_layer_destroy(s_first_stop_time_layer);
+  text_layer_destroy(s_station_name_layer);
+  text_layer_destroy(s_next_stop_time_layer);
   text_layer_destroy(s_second_stop_dest_layer);
+  text_layer_destroy(s_second_stop_time_layer);
   text_layer_destroy(s_third_stop_dest_layer);
+  text_layer_destroy(s_third_stop_time_layer);
   
   status_bar_layer_destroy(s_status_bar);
 

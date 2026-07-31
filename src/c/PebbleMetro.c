@@ -12,7 +12,7 @@ static Window *s_main_window;
 static StatusBarLayer *s_status_bar;
 static SimpleMenuLayer *s_simple_menu_layer;
 static SimpleMenuSection s_menu_sections[1];
-static SimpleMenuItem s_first_menu_items[3];
+static SimpleMenuItem s_first_menu_items[STOP_COUNT];
 
 // Post strings to log
 static void logger(char *message){
@@ -24,20 +24,19 @@ static void logger(char *message){
 // A struct for our specific settings (see main.h)
 static ClaySettings settings;
 
-static void load_window_stop_1() {
+static void load_window_for_stop(int stop_id, char *stop_name) {
   app_message_deregister_callbacks();
-  int stopId = 1;
-  station_window_push(stopId, settings.STOP_1_NAME);
+  station_window_push(stop_id, stop_name);
+}
+
+static void load_window_stop_1() {
+  load_window_for_stop(1, settings.STOP_1_NAME);
 }
 static void load_window_stop_2() {
-  app_message_deregister_callbacks();
-  int stopId = 2;
-  station_window_push(stopId, settings.STOP_2_NAME);
+  load_window_for_stop(2, settings.STOP_2_NAME);
 }
 static void load_window_stop_3() {
-  app_message_deregister_callbacks();
-  int stopId = 3;
-  station_window_push(stopId, settings.STOP_3_NAME);
+  load_window_for_stop(3, settings.STOP_3_NAME);
 }
 
 const char* get_stop_type(int type) {
@@ -61,24 +60,32 @@ static void main_window_load(Window *window) {
   
   APP_LOG(APP_LOG_LEVEL_INFO, "Loading main...");
 
-  s_first_menu_items[0] = (SimpleMenuItem) {
-    .title = settings.STOP_1_NAME,
-    .subtitle = settings.STOP_1_TYPE,
-    .callback = load_window_stop_1
+  char *stop_names[STOP_COUNT] = {
+    settings.STOP_1_NAME,
+    settings.STOP_2_NAME,
+    settings.STOP_3_NAME
   };
-  s_first_menu_items[1] = (SimpleMenuItem) {
-    .title = settings.STOP_2_NAME,
-    .subtitle = settings.STOP_2_TYPE,
-    .callback = load_window_stop_2
+  char *stop_types[STOP_COUNT] = {
+    settings.STOP_1_TYPE,
+    settings.STOP_2_TYPE,
+    settings.STOP_3_TYPE
   };
-  s_first_menu_items[2] = (SimpleMenuItem) {
-    .title = settings.STOP_3_NAME,
-    .subtitle = settings.STOP_3_TYPE,
-    .callback = load_window_stop_3
+  void (*stop_callbacks[STOP_COUNT])(void) = {
+    load_window_stop_1,
+    load_window_stop_2,
+    load_window_stop_3
   };
 
+  for (int i = 0; i < STOP_COUNT; i++) {
+    s_first_menu_items[i] = (SimpleMenuItem) {
+      .title = stop_names[i],
+      .subtitle = stop_types[i],
+      .callback = stop_callbacks[i]
+    };
+  }
+
   s_menu_sections[0] = (SimpleMenuSection) {
-    .num_items = 3,
+    .num_items = STOP_COUNT,
     .items = s_first_menu_items,
   };
 
@@ -102,8 +109,6 @@ static void main_window_load(Window *window) {
 void main_window_unload() {
   status_bar_layer_destroy(s_status_bar);
   simple_menu_layer_destroy(s_simple_menu_layer);
-  window_destroy(s_main_window);
-  s_main_window = NULL;
   loaded = false;
 };
 
@@ -119,12 +124,24 @@ void draw_home_screen() {
 
 // Initialize the default settings
 static void default_settings() {
-  strncpy(settings.STOP_1_NAME, "...", sizeof(settings.STOP_1_NAME) - 1);
-  strncpy(settings.STOP_2_NAME, "...", sizeof(settings.STOP_2_NAME) - 1);
-  strncpy(settings.STOP_3_NAME, "...", sizeof(settings.STOP_3_NAME) - 1);
-  strncpy(settings.STOP_1_TYPE, get_stop_type(9999), sizeof(settings.STOP_1_TYPE) - 1);
-  strncpy(settings.STOP_2_TYPE, get_stop_type(9999), sizeof(settings.STOP_2_TYPE) - 1);
-  strncpy(settings.STOP_3_TYPE, get_stop_type(9999), sizeof(settings.STOP_3_TYPE) - 1);
+  char *stop_names[STOP_COUNT] = {
+    settings.STOP_1_NAME,
+    settings.STOP_2_NAME,
+    settings.STOP_3_NAME
+  };
+  char *stop_types[STOP_COUNT] = {
+    settings.STOP_1_TYPE,
+    settings.STOP_2_TYPE,
+    settings.STOP_3_TYPE
+  };
+  size_t stop_size = sizeof(settings.STOP_1_NAME);
+
+  for (int i = 0; i < STOP_COUNT; i++) {
+    strncpy(stop_names[i], "...", stop_size - 1);
+    stop_names[i][stop_size - 1] = '\0';
+    strncpy(stop_types[i], get_stop_type(9999), stop_size - 1);
+    stop_types[i][stop_size - 1] = '\0';
+  }
 }
 
 static void load_settings() {
@@ -158,8 +175,12 @@ static void config_load_handler(DictionaryIterator *iter, void *context){
   };
 
   // Setting keys
-  int stationNameKeys[STOP_COUNT] = { SETTINGS_STOP_1_NAME, SETTINGS_STOP_2_NAME, SETTINGS_STOP_3_NAME };
-  int stationTypeKeys[STOP_COUNT] = { SETTINGS_STOP_1_TYPE, SETTINGS_STOP_2_TYPE, SETTINGS_STOP_3_TYPE };
+  int stationNameKeys[STOP_COUNT];
+  int stationTypeKeys[STOP_COUNT];
+  for (int i = 0; i < STOP_COUNT; i++) {
+    stationNameKeys[i] = SETTINGS_STOP_1_NAME + i;
+    stationTypeKeys[i] = SETTINGS_STOP_1_TYPE + i;
+  }
 
   // Checking if setting has been updated
   bool changed = false;
@@ -174,6 +195,7 @@ static void config_load_handler(DictionaryIterator *iter, void *context){
       char* dest_ptr = dest_ptrs[i];
       size_t dest_size = dest_sizes[i];
       strncpy(dest_ptr, name, dest_size - 1);
+      dest_ptr[dest_size - 1] = '\0';
       APP_LOG(APP_LOG_LEVEL_INFO, "%s", dest_ptr);
 
       changed = true;
@@ -189,6 +211,7 @@ static void config_load_handler(DictionaryIterator *iter, void *context){
       char* type_ptr = type_ptrs[i];
       size_t type_size = dest_sizes[i];
       strncpy(type_ptr, get_stop_type(type), type_size - 1);
+      type_ptr[type_size - 1] = '\0';
 
       changed = true;
     }
@@ -210,7 +233,10 @@ static void init(){
 };
 
 static void deinit(){
-  window_destroy(s_main_window);
+  if (s_main_window) {
+    window_destroy(s_main_window);
+    s_main_window = NULL;
+  }
 };
 
 int main(void) {
@@ -218,4 +244,3 @@ int main(void) {
   app_event_loop();
   deinit();
 };
-

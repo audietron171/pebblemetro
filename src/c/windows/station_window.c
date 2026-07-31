@@ -26,13 +26,20 @@ static char *stopName;
 static int stopType;
 
 static int s_content_inset;
+static int s_header_height;
 static int s_first_divider_y;
 static int s_next_departures_divider_y;
 static int s_next_departure_box_y;
+static int s_next_departure_box_x;
+static int s_next_departure_box_width;
+static int s_next_departure_box_height;
+static int s_next_stop_time_height;
 static int s_third_departures_divider_y;
 static int s_first_departure_row_y;
 static int s_second_departure_row_y;
 static int s_third_departure_row_y;
+static int s_departure_row_height;
+static int s_time_column_width;
 
 // Sync for JS communication
 static AppSync s_sync;
@@ -69,16 +76,37 @@ static GColor get_header_background_color() {
 #endif
 }
 
-static void update_layout_metrics() {
-  const int vertical_offset = PBL_IF_ROUND_ELSE(6, 0);
-  s_content_inset = PBL_IF_ROUND_ELSE(10, 0);
-  s_first_departure_row_y = STATUS_BAR_LAYER_HEIGHT + 34 + vertical_offset;
-  s_first_divider_y = STATUS_BAR_LAYER_HEIGHT + 52 + vertical_offset;
-  s_next_departure_box_y = STATUS_BAR_LAYER_HEIGHT + 62 + vertical_offset;
-  s_next_departures_divider_y = STATUS_BAR_LAYER_HEIGHT + 104 + vertical_offset;
-  s_second_departure_row_y = STATUS_BAR_LAYER_HEIGHT + 108 + vertical_offset;
-  s_third_departures_divider_y = STATUS_BAR_LAYER_HEIGHT + 128 + vertical_offset;
-  s_third_departure_row_y = STATUS_BAR_LAYER_HEIGHT + 130 + vertical_offset;
+static void update_layout_metrics(GRect bounds) {
+  const bool is_round = PBL_IF_ROUND_ELSE(true, false);
+  const int base_height = is_round ? 180 : 168;
+  const int round_offset = is_round ? 6 : 0;
+  int extra_height = bounds.size.h - base_height;
+
+  if (extra_height < 0) {
+    extra_height = 0;
+  }
+
+  s_content_inset = is_round ? 10 : 0;
+  if (bounds.size.w >= 200) {
+    s_content_inset += 2;
+  }
+
+  s_header_height = bounds.size.h >= 200 ? 38 : 32;
+  s_departure_row_height = bounds.size.h >= 200 ? 24 : 20;
+  s_time_column_width = PBL_IF_ROUND_ELSE(44, 42) + (bounds.size.w >= 200 ? 6 : 0);
+  s_next_departure_box_width = bounds.size.w >= 200 ? PBL_IF_ROUND_ELSE(88, 78) : PBL_IF_ROUND_ELSE(80, 62);
+  s_next_departure_box_height = bounds.size.h >= 200 ? 42 : 35;
+  s_next_departure_box_x = (bounds.size.w - s_next_departure_box_width) / 2;
+  s_next_stop_time_height = bounds.size.h >= 200 ? 28 : 24;
+
+  const int vertical_step = extra_height / 6;
+  s_first_departure_row_y = STATUS_BAR_LAYER_HEIGHT + 34 + round_offset + (vertical_step * 2);
+  s_first_divider_y = s_first_departure_row_y + s_departure_row_height - 2;
+  s_next_departure_box_y = s_first_divider_y + 10 + vertical_step;
+  s_next_departures_divider_y = s_next_departure_box_y + s_next_departure_box_height + 7 + vertical_step;
+  s_second_departure_row_y = s_next_departures_divider_y + 4;
+  s_third_departures_divider_y = s_second_departure_row_y + s_departure_row_height;
+  s_third_departure_row_y = s_third_departures_divider_y + 2;
 }
 
 // Send acknowledgement for a JS message and request more data
@@ -196,7 +224,7 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
   graphics_draw_line(ctx, start, end);
 
   // Time to next departure rectangle background
-  GRect rect_bounds = GRect(PBL_IF_ROUND_ELSE(50, 42), s_next_departure_box_y, PBL_IF_ROUND_ELSE(80, 62), 35);
+  GRect rect_bounds = GRect(s_next_departure_box_x, s_next_departure_box_y, s_next_departure_box_width, s_next_departure_box_height);
   graphics_fill_rect(ctx, rect_bounds, 8, GCornersAll);
 }
 // Drawing (Thin lines)
@@ -221,8 +249,7 @@ static void canvas_update_proc2(Layer *layer, GContext *ctx) {
 void station_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
-  update_layout_metrics();
-  const int time_column_width = PBL_IF_ROUND_ELSE(44, 42);
+  update_layout_metrics(bounds);
   const int content_width = bounds.size.w - (s_content_inset * 2);
 
   // Create status bar
@@ -247,12 +274,13 @@ void station_window_load(Window *window) {
   text_layer_set_background_color(s_station_name_layer, get_header_background_color());
   text_layer_set_overflow_mode(s_station_name_layer, GTextOverflowModeTrailingEllipsis);
   text_layer_set_text_alignment(s_station_name_layer, GTextAlignmentCenter);
-  text_layer_set_font(s_station_name_layer, fonts_get_system_font(PBL_IF_ROUND_ELSE(FONT_KEY_GOTHIC_24_BOLD, FONT_KEY_GOTHIC_18_BOLD)));
+  text_layer_set_font(s_station_name_layer, fonts_get_system_font((bounds.size.h >= 200 || PBL_IF_ROUND_ELSE(true, false)) ? FONT_KEY_GOTHIC_24_BOLD : FONT_KEY_GOTHIC_18_BOLD));
+  layer_set_frame(text_layer_get_layer(s_station_name_layer), GRect(s_content_inset, STATUS_BAR_LAYER_HEIGHT, content_width, s_header_height));
   text_layer_set_text(s_station_name_layer, stopName);
   layer_add_child(window_layer, text_layer_get_layer(s_station_name_layer));
 
   // Time till next departure
-  s_next_stop_time_layer = text_layer_create(GRect(s_content_inset, s_next_departure_box_y + 4, content_width, 24));
+  s_next_stop_time_layer = text_layer_create(GRect(s_content_inset, s_next_departure_box_y + ((s_next_departure_box_height - s_next_stop_time_height) / 2), content_width, s_next_stop_time_height));
   text_layer_set_text_color(s_next_stop_time_layer, GColorWhite);
   text_layer_set_background_color(s_next_stop_time_layer, GColorClear);
   text_layer_set_overflow_mode(s_next_stop_time_layer, GTextOverflowModeTrailingEllipsis);
@@ -261,7 +289,7 @@ void station_window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(s_next_stop_time_layer));
 
   // First depature time
-  s_first_stop_time_layer = text_layer_create(GRect(s_content_inset + 3, s_first_departure_row_y, time_column_width, 20));
+  s_first_stop_time_layer = text_layer_create(GRect(s_content_inset + 3, s_first_departure_row_y, s_time_column_width, s_departure_row_height));
   text_layer_set_text_color(s_first_stop_time_layer, GColorBlack);
   text_layer_set_background_color(s_first_stop_time_layer, GColorClear);
   text_layer_set_overflow_mode(s_first_stop_time_layer, GTextOverflowModeTrailingEllipsis);
@@ -269,7 +297,7 @@ void station_window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(s_first_stop_time_layer));
 
   // First departure destination
-  s_first_stop_dest_layer = text_layer_create(GRect(s_content_inset + time_column_width, s_first_departure_row_y, content_width - time_column_width, 20));
+  s_first_stop_dest_layer = text_layer_create(GRect(s_content_inset + s_time_column_width, s_first_departure_row_y, content_width - s_time_column_width, s_departure_row_height));
   text_layer_set_text_color(s_first_stop_dest_layer, GColorBlack);
   text_layer_set_background_color(s_first_stop_dest_layer, GColorClear);
   text_layer_set_overflow_mode(s_first_stop_dest_layer, GTextOverflowModeTrailingEllipsis);
@@ -277,7 +305,7 @@ void station_window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(s_first_stop_dest_layer));
 
   // Second depature time
-  s_second_stop_time_layer = text_layer_create(GRect(s_content_inset + 3, s_second_departure_row_y, time_column_width, 20));
+  s_second_stop_time_layer = text_layer_create(GRect(s_content_inset + 3, s_second_departure_row_y, s_time_column_width, s_departure_row_height));
   text_layer_set_text_color(s_second_stop_time_layer, GColorBlack);
   text_layer_set_background_color(s_second_stop_time_layer, GColorClear);
   text_layer_set_overflow_mode(s_second_stop_time_layer, GTextOverflowModeTrailingEllipsis);
@@ -285,7 +313,7 @@ void station_window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(s_second_stop_time_layer));
 
   // Second departure destination
-  s_second_stop_dest_layer = text_layer_create(GRect(s_content_inset + time_column_width, s_second_departure_row_y, content_width - time_column_width, 20));
+  s_second_stop_dest_layer = text_layer_create(GRect(s_content_inset + s_time_column_width, s_second_departure_row_y, content_width - s_time_column_width, s_departure_row_height));
   text_layer_set_text_color(s_second_stop_dest_layer, GColorBlack);
   text_layer_set_background_color(s_second_stop_dest_layer, GColorClear);
   text_layer_set_overflow_mode(s_second_stop_dest_layer, GTextOverflowModeTrailingEllipsis);
@@ -293,7 +321,7 @@ void station_window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(s_second_stop_dest_layer));
 
   // Third depature time
-  s_third_stop_time_layer = text_layer_create(GRect(s_content_inset + 3, s_third_departure_row_y, time_column_width, 20));
+  s_third_stop_time_layer = text_layer_create(GRect(s_content_inset + 3, s_third_departure_row_y, s_time_column_width, s_departure_row_height));
   text_layer_set_text_color(s_third_stop_time_layer, GColorBlack);
   text_layer_set_background_color(s_third_stop_time_layer, GColorClear);
   text_layer_set_overflow_mode(s_third_stop_time_layer, GTextOverflowModeTrailingEllipsis);
@@ -301,7 +329,7 @@ void station_window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(s_third_stop_time_layer));
 
   // Third departure destination
-  s_third_stop_dest_layer = text_layer_create(GRect(s_content_inset + time_column_width, s_third_departure_row_y, content_width - time_column_width, 20));
+  s_third_stop_dest_layer = text_layer_create(GRect(s_content_inset + s_time_column_width, s_third_departure_row_y, content_width - s_time_column_width, s_departure_row_height));
   text_layer_set_text_color(s_third_stop_dest_layer, GColorBlack);
   text_layer_set_background_color(s_third_stop_dest_layer, GColorClear);
   text_layer_set_overflow_mode(s_third_stop_dest_layer, GTextOverflowModeTrailingEllipsis);

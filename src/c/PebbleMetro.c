@@ -27,17 +27,17 @@ static ClaySettings settings;
 static void load_window_stop_1() {
   app_message_deregister_callbacks();
   int stopId = 1;
-  station_window_push(stopId, settings.STOP_1_NAME);
+  station_window_push(stopId, settings.STOP_1_NAME, settings.STOP_1_TYPE);
 }
 static void load_window_stop_2() {
   app_message_deregister_callbacks();
   int stopId = 2;
-  station_window_push(stopId, settings.STOP_2_NAME);
+  station_window_push(stopId, settings.STOP_2_NAME, settings.STOP_2_TYPE);
 }
 static void load_window_stop_3() {
   app_message_deregister_callbacks();
   int stopId = 3;
-  station_window_push(stopId, settings.STOP_3_NAME);
+  station_window_push(stopId, settings.STOP_3_NAME, settings.STOP_3_TYPE);
 }
 
 const char* get_stop_type(int type) {
@@ -218,4 +218,3 @@ int main(void) {
   app_event_loop();
   deinit();
 };
-

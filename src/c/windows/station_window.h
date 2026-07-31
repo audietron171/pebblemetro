@@ -14,4 +14,4 @@
 
 #define PTV_REQ_STOP_NUMBER 20
 
-void station_window_push(int stop, char *name);
+void station_window_push(int stop, char *name, char *type);

@@ -27,17 +27,17 @@ static ClaySettings settings;
 static void load_window_stop_1() {
   app_message_deregister_callbacks();
   int stopId = 1;
-  station_window_push(stopId, settings.STOP_1_NAME);
+  station_window_push(stopId, settings.STOP_1_NAME, settings.STOP_1_TYPE_ID);
 }
 static void load_window_stop_2() {
   app_message_deregister_callbacks();
   int stopId = 2;
-  station_window_push(stopId, settings.STOP_2_NAME);
+  station_window_push(stopId, settings.STOP_2_NAME, settings.STOP_2_TYPE_ID);
 }
 static void load_window_stop_3() {
   app_message_deregister_callbacks();
   int stopId = 3;
-  station_window_push(stopId, settings.STOP_3_NAME);
+  station_window_push(stopId, settings.STOP_3_NAME, settings.STOP_3_TYPE_ID);
 }
 
 const char* get_stop_type(int type) {
@@ -93,7 +93,12 @@ static void main_window_load(Window *window) {
   layer_add_child(window_layer, status_bar_layer_get_layer(s_status_bar));
 
   available_bounds = GRect(0, STATUS_BAR_LAYER_HEIGHT, bounds.size.w, bounds.size.h - STATUS_BAR_LAYER_HEIGHT);
+  if (PBL_IF_ROUND_ELSE(true, false)) {
+    available_bounds.origin.x = 6;
+    available_bounds.size.w -= 12;
+  }
   s_simple_menu_layer = simple_menu_layer_create(available_bounds, window, s_menu_sections, 1, NULL);
+  menu_layer_set_center_focused(simple_menu_layer_get_menu_layer(s_simple_menu_layer), PBL_IF_ROUND_ELSE(true, false));
   layer_add_child(window_layer, simple_menu_layer_get_layer(s_simple_menu_layer));
 
   loaded = true;
@@ -125,6 +130,9 @@ static void default_settings() {
   strncpy(settings.STOP_1_TYPE, get_stop_type(9999), sizeof(settings.STOP_1_TYPE) - 1);
   strncpy(settings.STOP_2_TYPE, get_stop_type(9999), sizeof(settings.STOP_2_TYPE) - 1);
   strncpy(settings.STOP_3_TYPE, get_stop_type(9999), sizeof(settings.STOP_3_TYPE) - 1);
+  settings.STOP_1_TYPE_ID = 9999;
+  settings.STOP_2_TYPE_ID = 9999;
+  settings.STOP_3_TYPE_ID = 9999;
 }
 
 static void load_settings() {
@@ -155,6 +163,11 @@ static void config_load_handler(DictionaryIterator *iter, void *context){
       settings.STOP_1_TYPE,
       settings.STOP_2_TYPE,
       settings.STOP_3_TYPE,
+  };
+  int *type_id_ptrs[] = {
+      &settings.STOP_1_TYPE_ID,
+      &settings.STOP_2_TYPE_ID,
+      &settings.STOP_3_TYPE_ID,
   };
 
   // Setting keys
@@ -189,6 +202,7 @@ static void config_load_handler(DictionaryIterator *iter, void *context){
       char* type_ptr = type_ptrs[i];
       size_t type_size = dest_sizes[i];
       strncpy(type_ptr, get_stop_type(type), type_size - 1);
+      *type_id_ptrs[i] = type;
 
       changed = true;
     }
@@ -218,4 +232,3 @@ int main(void) {
   app_event_loop();
   deinit();
 };
-

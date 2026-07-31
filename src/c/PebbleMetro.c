@@ -1,6 +1,7 @@
 #include <pebble.h>
 #include "./PebbleMetro.h"
 #include "windows/station_window.h"
+#include "windows/nearby_window.h"
 
 Window *window;
 SimpleMenuLayer *simplemenulayer;
@@ -12,7 +13,7 @@ static Window *s_main_window;
 static StatusBarLayer *s_status_bar;
 static SimpleMenuLayer *s_simple_menu_layer;
 static SimpleMenuSection s_menu_sections[1];
-static SimpleMenuItem s_first_menu_items[3];
+static SimpleMenuItem s_first_menu_items[4];
 
 // Post strings to log
 static void logger(char *message){
@@ -23,6 +24,11 @@ static void logger(char *message){
 
 // A struct for our specific settings (see main.h)
 static ClaySettings settings;
+
+static void load_window_nearby() {
+  app_message_deregister_callbacks();
+  nearby_window_push();
+}
 
 static void load_window_stop_1() {
   app_message_deregister_callbacks();
@@ -62,23 +68,28 @@ static void main_window_load(Window *window) {
   APP_LOG(APP_LOG_LEVEL_INFO, "Loading main...");
 
   s_first_menu_items[0] = (SimpleMenuItem) {
+    .title = "Nearby Stops",
+    .subtitle = "GPS required",
+    .callback = load_window_nearby
+  };
+  s_first_menu_items[1] = (SimpleMenuItem) {
     .title = settings.STOP_1_NAME,
     .subtitle = settings.STOP_1_TYPE,
     .callback = load_window_stop_1
   };
-  s_first_menu_items[1] = (SimpleMenuItem) {
+  s_first_menu_items[2] = (SimpleMenuItem) {
     .title = settings.STOP_2_NAME,
     .subtitle = settings.STOP_2_TYPE,
     .callback = load_window_stop_2
   };
-  s_first_menu_items[2] = (SimpleMenuItem) {
+  s_first_menu_items[3] = (SimpleMenuItem) {
     .title = settings.STOP_3_NAME,
     .subtitle = settings.STOP_3_TYPE,
     .callback = load_window_stop_3
   };
 
   s_menu_sections[0] = (SimpleMenuSection) {
-    .num_items = 3,
+    .num_items = 4,
     .items = s_first_menu_items,
   };
 

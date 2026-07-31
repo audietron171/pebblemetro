@@ -204,6 +204,98 @@ function sendData() {
   Pebble.sendAppMessage(send, function () { console.log('Sent data successfully') }, function (e) { console.log(`Failed to send:` + e) })
 }
 
+// Fetch nearby departures using device GPS and send results to watch
+function getNearbyDepartures() {
+  if (!navigator.geolocation) {
+    console.log('Geolocation not available')
+    return
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    function (pos) {
+      var lat = pos.coords.latitude
+      var lng = pos.coords.longitude
+      console.log('Got location: ' + lat + ',' + lng)
+
+      var query = '/v3/stops/location/' + lat + ',' + lng + '?max_results=5'
+      makeApiRequest(query, function (req) {
+        if (req.readyState !== 4) return
+        if (req.status !== 200) {
+          console.log('Nearby stops request failed: ' + req.status)
+          return
+        }
+        var data = JSON.parse(req.responseText)
+        var stops = data.stops || []
+        console.log('Found ' + stops.length + ' nearby stops')
+        fetchDeparturesSequentially(stops, 0)
+      })
+    },
+    function (err) {
+      console.log('Geolocation error: ' + err.message)
+    },
+    { timeout: 15000, maximumAge: 60000 }
+  )
+}
+
+// Sequentially fetch one departure per stop and queue results for sending
+function fetchDeparturesSequentially(stops, idx) {
+  if (idx >= stops.length || idx >= 8) {
+    sendData()
+    return
+  }
+
+  var stop = stops[idx]
+  var routeType = stop.route_type
+  var stopId = stop.stop_id
+  var query = '/v3/departures/route_type/' + routeType + '/stop/' + stopId + '?max_results=1&expand=run'
+
+  makeApiRequest(query, function (req) {
+    if (req.readyState !== 4 || req.status !== 200) {
+      fetchDeparturesSequentially(stops, idx + 1)
+      return
+    }
+
+    try {
+      var data = JSON.parse(req.responseText)
+      var departures = data.departures || []
+
+      if (departures.length > 0) {
+        var dep = departures[0]
+        var timeUtc = dep.estimated_departure_utc || dep.scheduled_departure_utc
+        var timeStr = convertTimeTo12(timeUtc)
+
+        if (dep.estimated_departure_utc) {
+          var mins = Math.round(
+            (new Date(dep.estimated_departure_utc).getTime() - Date.now()) / 60000
+          )
+          if (mins <= 0) timeStr = 'Now'
+          else if (mins < 60) timeStr = mins + 'min'
+        }
+
+        var dest = ''
+        if (data.runs && dep.run_ref && data.runs[dep.run_ref]) {
+          dest = data.runs[dep.run_ref].destination_name || ''
+        }
+
+        var stopName = stop.stop_name || 'Unknown'
+        if (stopName.length > 20) stopName = stopName.slice(0, 19) + '.'
+        if (dest.length > 20) dest = dest.slice(0, 19) + '.'
+
+        backlog.push({
+          'NEARBY_STOP_NAME_KEY': stopName,
+          'NEARBY_DEST_KEY': dest,
+          'NEARBY_TIME_KEY': timeStr,
+          'NEARBY_ENTRY_INDEX_KEY': idx
+        })
+      }
+    } catch (e) {
+      console.log('Error parsing departure for stop ' + idx + ': ' + e)
+    }
+
+    fetchDeparturesSequentially(stops, idx + 1)
+  })
+}
+
 // Perform a health check on initial boot
 Pebble.addEventListener('ready', function (e) {
   console.log('connect!' + e.ready);
@@ -215,7 +307,14 @@ Pebble.addEventListener('appmessage', function (e) {
   var dictionary = e.payload;
   console.log('Got message: ' + JSON.stringify(dictionary));
 
-  // Process new request
+  // Process request for nearby departures
+  if (dictionary.PTV_REQ_NEARBY != undefined) {
+    backlog = []
+    getNearbyDepartures()
+    return
+  }
+
+  // Process new request for a configured stop
   if (dictionary.PTV_REQ_STOP_NUMBER != undefined) {
     // New request so drop old data
     backlog = []

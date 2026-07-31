@@ -31,7 +31,13 @@
 
       "SETTINGS_STOP_1_NAME": 31,
       "SETTINGS_STOP_2_NAME": 32,
-      "SETTINGS_STOP_3_NAME": 33
+      "SETTINGS_STOP_3_NAME": 33,
+
+      "PTV_REQ_NEARBY": 21,
+      "NEARBY_STOP_NAME_KEY": 40,
+      "NEARBY_DEST_KEY": 41,
+      "NEARBY_TIME_KEY": 42,
+      "NEARBY_ENTRY_INDEX_KEY": 43
     },
     "enableMultiJS": true,
     "displayName": "Pebble Metro",

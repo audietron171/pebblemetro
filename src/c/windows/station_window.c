@@ -9,6 +9,10 @@ static StatusBarLayer *s_status_bar;
 // Drawing layers
 static Layer *s_canvas_layer;
 static Layer *s_canvas_layer2;
+static Layer *s_canvas_layer3;
+
+// Icons
+static GBitmap *s_transport_type_icon;
 
 // Data text layers
 static TextLayer *s_first_stop_dest_layer;
@@ -23,6 +27,7 @@ static TextLayer *s_next_stop_time_layer;
 // Passed by main to determine stop data to poll
 static int stopNumber;
 static char *stopName;
+static int stopType;
 
 // Sync for JS communication
 static AppSync s_sync;
@@ -116,6 +121,50 @@ static void request_stop_info(){
   refresh_timer_handle = app_timer_register(refresh_timeout_ms, request_stop_info, NULL);
 }
 
+static uint32_t get_stop_icon_resource_id(int type) {
+  switch (type) {
+    case 1:
+      return RESOURCE_ID_TRAM_PNG_ICON;
+    case 2:
+    case 4:
+      return RESOURCE_ID_BUS_PNG_ICON;
+    default:
+      return RESOURCE_ID_TRAIN_PNG_ICON;
+  }
+}
+
+static GColor get_station_banner_background_color(int type) {
+  #ifdef PBL_COLOR
+    switch (type) {
+      case 1:
+        // Tram green
+        return GColorIslamicGreen;
+      case 2:
+      case 4:
+        // Bus orange
+        return GColorChromeYellow;
+      case 3:
+        // V/Line purple
+        return GColorVividViolet;
+      default:
+        // Metro blue
+        return GColorBlueMoon;
+    }
+  #else
+    // Monochrome platforms have no color support.
+    return GColorBlack;
+  #endif
+}
+
+static GColor get_station_banner_text_color() {
+  #ifdef PBL_COLOR
+    return GColorBlack;
+  #else
+    // Monochrome platforms have no color support.
+    return GColorWhite;
+  #endif
+}
+
 // Unload window and return to stop selection
 void station_window_unload(Window *window) {
   app_sync_deinit(&s_sync);
@@ -129,6 +178,8 @@ void station_window_unload(Window *window) {
 
   layer_destroy(s_canvas_layer);
   layer_destroy(s_canvas_layer2);
+  layer_destroy(s_canvas_layer3);
+  gbitmap_destroy(s_transport_type_icon);
 
   window_destroy(window);
   s_station_window = NULL;
@@ -138,6 +189,9 @@ void station_window_unload(Window *window) {
 
 // Drawing (Bolded lines)
 static void canvas_update_proc(Layer *layer, GContext *ctx) {
+  GRect bounds = layer_get_bounds(layer);
+  GRect available_bounds = GRect(0, STATUS_BAR_LAYER_HEIGHT, bounds.size.w, bounds.size.h - STATUS_BAR_LAYER_HEIGHT);
+
   graphics_context_set_fill_color(ctx, GColorBlack);
   graphics_context_set_stroke_width(ctx, 3);
 
@@ -145,6 +199,11 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
   GPoint start = GPoint(0, 120);
   GPoint end = GPoint(144, 120);
   graphics_draw_line(ctx, start, end);
+
+  // Route type icon bottom divider
+  GPoint start2 = GPoint(0, STATUS_BAR_LAYER_HEIGHT + 32);
+  GPoint end2 = GPoint(bounds.size.w, STATUS_BAR_LAYER_HEIGHT + 32);
+  graphics_draw_line(ctx, start2, end2);
 
   // Time to next departure rectangle background
   GRect rect_bounds = GRect(42, 78, 62, 35);
@@ -164,9 +223,16 @@ static void canvas_update_proc2(Layer *layer, GContext *ctx) {
   GPoint start2 = GPoint(0, 144);
   GPoint end2 = GPoint(144, 144);
   graphics_draw_line(ctx, start2, end2);
-  
 }
+// Drawing (route icon)
+static void canvas_update_proc3(Layer *layer, GContext *ctx) {
+  // Top left hand corner
+  GRect image_bounds = gbitmap_get_bounds(s_transport_type_icon);
+  image_bounds.origin = GPoint(5, STATUS_BAR_LAYER_HEIGHT);
 
+  graphics_context_set_compositing_mode(ctx, GCompOpSet);
+  graphics_draw_bitmap_in_rect(ctx, s_transport_type_icon, image_bounds);
+}
 // Load stop window
 void station_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
@@ -175,24 +241,28 @@ void station_window_load(Window *window) {
 
   // Create status bar
   s_status_bar = status_bar_layer_create();
-  GRect statusbar_frame = GRect(0, 0, bounds.size.w, STATUS_BAR_LAYER_HEIGHT);
+  GRect statusbar_frame = GRect(0, 0, available_bounds.size.w, STATUS_BAR_LAYER_HEIGHT);
   status_bar_layer_set_colors(s_status_bar, GColorClear, GColorBlack);
   status_bar_layer_set_separator_mode(s_status_bar, StatusBarLayerSeparatorModeDotted);
   layer_set_frame(status_bar_layer_get_layer(s_status_bar), statusbar_frame);
   layer_add_child(window_layer, status_bar_layer_get_layer(s_status_bar));
   
   // Create drawing/borders
+  s_transport_type_icon = gbitmap_create_with_resource(get_stop_icon_resource_id(stopType));
   s_canvas_layer = layer_create(bounds);
   layer_set_update_proc(s_canvas_layer, canvas_update_proc);
   layer_add_child(window_layer, s_canvas_layer);
   s_canvas_layer2 = layer_create(bounds);
   layer_set_update_proc(s_canvas_layer2, canvas_update_proc2);
   layer_add_child(window_layer, s_canvas_layer2);
+  s_canvas_layer3 = layer_create(bounds);
+  layer_set_update_proc(s_canvas_layer3, canvas_update_proc3);
+  layer_add_child(window_layer, s_canvas_layer3);
 
   // Banner station name
-  s_station_name_layer = text_layer_create(GRect(0, STATUS_BAR_LAYER_HEIGHT, available_bounds.size.w, 32));
-  text_layer_set_text_color(s_station_name_layer, GColorWhite);
-  text_layer_set_background_color(s_station_name_layer, GColorLightGray);
+  s_station_name_layer = text_layer_create(GRect(0.25*available_bounds.size.w, STATUS_BAR_LAYER_HEIGHT, 0.75*available_bounds.size.w, 30));
+  text_layer_set_text_color(s_station_name_layer, get_station_banner_text_color());
+  text_layer_set_background_color(s_station_name_layer, get_station_banner_background_color(stopType));
   text_layer_set_overflow_mode(s_station_name_layer, GTextOverflowModeTrailingEllipsis);
   text_layer_set_text_alignment(s_station_name_layer, GTextAlignmentCenter);
   text_layer_set_text(s_station_name_layer, stopName);
@@ -255,13 +325,13 @@ void station_window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(s_third_stop_dest_layer));
 
   Tuplet initial_values[] = {
-    TupletCString(PTV_1_DEST_KEY, "..."),
-    TupletCString(PTV_2_DEST_KEY, "..."),
-    TupletCString(PTV_3_DEST_KEY, "..."),
-    TupletCString(PTV_1_TIME_KEY, "..."),
-    TupletCString(PTV_2_TIME_KEY, "..."),
-    TupletCString(PTV_3_TIME_KEY, "..."),
-    TupletCString(PTV_NEXT_TIME_KEY, "..."),
+    TupletCString(PTV_1_DEST_KEY, "Watergardens"),
+    TupletCString(PTV_2_DEST_KEY, "Frankston"),
+    TupletCString(PTV_3_DEST_KEY, "Weribee"),
+    TupletCString(PTV_1_TIME_KEY, "3:41pm"),
+    TupletCString(PTV_2_TIME_KEY, "3:51pm"),
+    TupletCString(PTV_3_TIME_KEY, "4:01pm"),
+    TupletCString(PTV_NEXT_TIME_KEY, "3mins"),
     TupletInteger(DATA_ACK, 0)
   };
 
@@ -274,10 +344,11 @@ void station_window_load(Window *window) {
 }
 
 // Store stop number and load station window
-void station_window_push(int stop, char *name) {
+void station_window_push(int stop, char *name, int type) {
   logger("Starting station window");
   stopNumber = stop;
   stopName = name;
+  stopType = type;
 
   if(!s_station_window) {
     s_station_window = window_create();

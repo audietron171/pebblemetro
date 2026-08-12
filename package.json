@@ -11,7 +11,29 @@
   "pebble": {
     "sdkVersion": "3",
     "resources": {
-      "media": []
+      "media": [
+        {
+          "type": "bitmap",
+          "name": "TRAIN_PNG_ICON",
+          "file": "train.png",
+          "memoryFormat": "Smallest",
+          "spaceOptimization": "memory"
+        },
+        {
+          "type": "bitmap",
+          "name": "BUS_PNG_ICON",
+          "file": "bus.png",
+          "memoryFormat": "Smallest",
+          "spaceOptimization": "memory"
+        },
+        {
+          "type": "bitmap",
+          "name": "TRAM_PNG_ICON",
+          "file": "tram.png",
+          "memoryFormat": "Smallest",
+          "spaceOptimization": "memory"
+        }
+      ]
     },
     "projectType": "native",
     "uuid": "586f3971-acaf-40c5-ab28-e220cbe3af08",
@@ -31,7 +53,10 @@
 
       "SETTINGS_STOP_1_NAME": 31,
       "SETTINGS_STOP_2_NAME": 32,
-      "SETTINGS_STOP_3_NAME": 33
+      "SETTINGS_STOP_3_NAME": 33,
+      "SETTINGS_STOP_1_TYPE": 34,
+      "SETTINGS_STOP_2_TYPE": 35,
+      "SETTINGS_STOP_3_TYPE": 36
     },
     "enableMultiJS": true,
     "displayName": "Pebble Metro",

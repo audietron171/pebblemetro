@@ -27,17 +27,17 @@ static ClaySettings settings;
 static void load_window_stop_1() {
   app_message_deregister_callbacks();
   int stopId = 1;
-  station_window_push(stopId, settings.STOP_1_NAME);
+  station_window_push(stopId, settings.STOP_1_NAME, (int)settings.STOP_1_TYPE);
 }
 static void load_window_stop_2() {
   app_message_deregister_callbacks();
   int stopId = 2;
-  station_window_push(stopId, settings.STOP_2_NAME);
+  station_window_push(stopId, settings.STOP_2_NAME, (int)settings.STOP_2_TYPE);
 }
 static void load_window_stop_3() {
   app_message_deregister_callbacks();
   int stopId = 3;
-  station_window_push(stopId, settings.STOP_3_NAME);
+  station_window_push(stopId, settings.STOP_3_NAME, (int)settings.STOP_3_TYPE);
 }
 
 const char* get_stop_type(int type) {
@@ -63,17 +63,17 @@ static void main_window_load(Window *window) {
 
   s_first_menu_items[0] = (SimpleMenuItem) {
     .title = settings.STOP_1_NAME,
-    .subtitle = settings.STOP_1_TYPE,
+    .subtitle = get_stop_type(settings.STOP_1_TYPE),
     .callback = load_window_stop_1
   };
   s_first_menu_items[1] = (SimpleMenuItem) {
     .title = settings.STOP_2_NAME,
-    .subtitle = settings.STOP_2_TYPE,
+    .subtitle = get_stop_type(settings.STOP_2_TYPE),
     .callback = load_window_stop_2
   };
   s_first_menu_items[2] = (SimpleMenuItem) {
     .title = settings.STOP_3_NAME,
-    .subtitle = settings.STOP_3_TYPE,
+    .subtitle = get_stop_type(settings.STOP_3_TYPE),
     .callback = load_window_stop_3
   };
 
@@ -119,12 +119,13 @@ void draw_home_screen() {
 
 // Initialize the default settings
 static void default_settings() {
-  strncpy(settings.STOP_1_NAME, "...", sizeof(settings.STOP_1_NAME) - 1);
+// Add test settings for emulator
+  strncpy(settings.STOP_1_NAME, "Flinders St Station", sizeof(settings.STOP_1_NAME) - 1);
   strncpy(settings.STOP_2_NAME, "...", sizeof(settings.STOP_2_NAME) - 1);
   strncpy(settings.STOP_3_NAME, "...", sizeof(settings.STOP_3_NAME) - 1);
-  strncpy(settings.STOP_1_TYPE, get_stop_type(9999), sizeof(settings.STOP_1_TYPE) - 1);
-  strncpy(settings.STOP_2_TYPE, get_stop_type(9999), sizeof(settings.STOP_2_TYPE) - 1);
-  strncpy(settings.STOP_3_TYPE, get_stop_type(9999), sizeof(settings.STOP_3_TYPE) - 1);
+  settings.STOP_1_TYPE = 9999;
+  settings.STOP_2_TYPE = 9999;
+  settings.STOP_3_TYPE = 9999;
 }
 
 static void load_settings() {
@@ -142,19 +143,19 @@ static void config_load_handler(DictionaryIterator *iter, void *context){
 
   // Define pointers to the destination arrays based on index
   char *dest_ptrs[] = {
-      settings.STOP_1_NAME,
-      settings.STOP_2_NAME,
-      settings.STOP_3_NAME,
+    settings.STOP_1_NAME,
+    settings.STOP_2_NAME,
+    settings.STOP_3_NAME,
   };
   size_t dest_sizes[] = {
-      sizeof(settings.STOP_1_NAME),
-      sizeof(settings.STOP_2_NAME),
-      sizeof(settings.STOP_3_NAME)
+    sizeof(settings.STOP_1_NAME),
+    sizeof(settings.STOP_2_NAME),
+    sizeof(settings.STOP_3_NAME)
   };
-  char *type_ptrs[] = {
-      settings.STOP_1_TYPE,
-      settings.STOP_2_TYPE,
-      settings.STOP_3_TYPE,
+  int32_t *type_ptrs[] = {
+    &settings.STOP_1_TYPE,
+    &settings.STOP_2_TYPE,
+    &settings.STOP_3_TYPE
   };
 
   // Setting keys
@@ -185,10 +186,8 @@ static void config_load_handler(DictionaryIterator *iter, void *context){
       logger("Found station type setting");
 
       // Update setting
-      int type = (int)station_type_tuple->value->int32;
-      char* type_ptr = type_ptrs[i];
-      size_t type_size = dest_sizes[i];
-      strncpy(type_ptr, get_stop_type(type), type_size - 1);
+      int32_t type = station_type_tuple->value->int32;
+      *type_ptrs[i] = type;
 
       changed = true;
     }
@@ -197,6 +196,12 @@ static void config_load_handler(DictionaryIterator *iter, void *context){
   if (changed){
     persist_write_data(PERSIST_SETTINGS_KEY, &settings, sizeof(settings));
     logger("Updating screen...");
+
+    // Type numbers must be manually updated, names are updated automatically
+    s_first_menu_items[0].subtitle = get_stop_type(settings.STOP_1_TYPE);
+    s_first_menu_items[1].subtitle = get_stop_type(settings.STOP_2_TYPE);
+    s_first_menu_items[2].subtitle = get_stop_type(settings.STOP_3_TYPE);
+
     layer_mark_dirty(simple_menu_layer_get_layer(s_simple_menu_layer));
   }
 }

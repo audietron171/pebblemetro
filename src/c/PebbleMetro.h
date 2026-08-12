@@ -11,12 +11,12 @@
 #define SETTINGS_STOP_3_TYPE 36
 
 // Persist Keys
-#define PERSIST_SETTINGS_KEY 1
+#define PERSIST_SETTINGS_KEY 2
 typedef struct ClaySettings {
     char STOP_1_NAME[20];
-    char STOP_1_TYPE[20];
+    int32_t STOP_1_TYPE;
     char STOP_2_NAME[20];
-    char STOP_2_TYPE[20];
+    int32_t STOP_2_TYPE;
     char STOP_3_NAME[20];
-    char STOP_3_TYPE[20];
+    int32_t STOP_3_TYPE;
 } ClaySettings;

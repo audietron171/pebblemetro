@@ -9,6 +9,10 @@ static StatusBarLayer *s_status_bar;
 // Drawing layers
 static Layer *s_canvas_layer;
 static Layer *s_canvas_layer2;
+static Layer *s_canvas_layer3;
+
+// Icons
+static GDrawCommandImage *s_train_icon;
 
 // Data text layers
 static TextLayer *s_first_stop_dest_layer;
@@ -129,6 +133,8 @@ void station_window_unload(Window *window) {
 
   layer_destroy(s_canvas_layer);
   layer_destroy(s_canvas_layer2);
+  layer_destroy(s_canvas_layer3);
+  gdraw_command_image_destroy(s_train_icon);
 
   window_destroy(window);
   s_station_window = NULL;
@@ -138,6 +144,9 @@ void station_window_unload(Window *window) {
 
 // Drawing (Bolded lines)
 static void canvas_update_proc(Layer *layer, GContext *ctx) {
+  GRect bounds = layer_get_bounds(layer);
+  GRect available_bounds = GRect(0, STATUS_BAR_LAYER_HEIGHT, bounds.size.w, bounds.size.h - STATUS_BAR_LAYER_HEIGHT);
+
   graphics_context_set_fill_color(ctx, GColorBlack);
   graphics_context_set_stroke_width(ctx, 3);
 
@@ -145,6 +154,11 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
   GPoint start = GPoint(0, 120);
   GPoint end = GPoint(144, 120);
   graphics_draw_line(ctx, start, end);
+
+  // Route type icon bottom divider
+  GPoint start2 = GPoint(0, STATUS_BAR_LAYER_HEIGHT + 32);
+  GPoint end2 = GPoint(bounds.size.w, STATUS_BAR_LAYER_HEIGHT + 32);
+  graphics_draw_line(ctx, start2, end2);
 
   // Time to next departure rectangle background
   GRect rect_bounds = GRect(42, 78, 62, 35);
@@ -164,7 +178,13 @@ static void canvas_update_proc2(Layer *layer, GContext *ctx) {
   GPoint start2 = GPoint(0, 144);
   GPoint end2 = GPoint(144, 144);
   graphics_draw_line(ctx, start2, end2);
-  
+}
+// Drawing (route icon)
+static void canvas_update_proc3(Layer *layer, GContext *ctx) {
+  graphics_context_set_stroke_color(ctx, GColorBlack); 
+  graphics_context_set_fill_color(ctx, GColorBlack);
+  GPoint origin = GPoint(10, STATUS_BAR_LAYER_HEIGHT);
+  gdraw_command_image_draw(ctx, s_train_icon, origin);
 }
 
 // Load stop window
@@ -175,24 +195,28 @@ void station_window_load(Window *window) {
 
   // Create status bar
   s_status_bar = status_bar_layer_create();
-  GRect statusbar_frame = GRect(0, 0, bounds.size.w, STATUS_BAR_LAYER_HEIGHT);
+  GRect statusbar_frame = GRect(0, 0, available_bounds.size.w, STATUS_BAR_LAYER_HEIGHT);
   status_bar_layer_set_colors(s_status_bar, GColorClear, GColorBlack);
   status_bar_layer_set_separator_mode(s_status_bar, StatusBarLayerSeparatorModeDotted);
   layer_set_frame(status_bar_layer_get_layer(s_status_bar), statusbar_frame);
   layer_add_child(window_layer, status_bar_layer_get_layer(s_status_bar));
   
   // Create drawing/borders
+  s_train_icon = gdraw_command_image_create_with_resource(RESOURCE_ID_GOOGLE_TRAIN_ICON);
   s_canvas_layer = layer_create(bounds);
   layer_set_update_proc(s_canvas_layer, canvas_update_proc);
   layer_add_child(window_layer, s_canvas_layer);
   s_canvas_layer2 = layer_create(bounds);
   layer_set_update_proc(s_canvas_layer2, canvas_update_proc2);
   layer_add_child(window_layer, s_canvas_layer2);
+  s_canvas_layer3 = layer_create(bounds);
+  layer_set_update_proc(s_canvas_layer3, canvas_update_proc3);
+  layer_add_child(window_layer, s_canvas_layer3);
 
   // Banner station name
-  s_station_name_layer = text_layer_create(GRect(0, STATUS_BAR_LAYER_HEIGHT, available_bounds.size.w, 32));
+  s_station_name_layer = text_layer_create(GRect(0.25*available_bounds.size.w, STATUS_BAR_LAYER_HEIGHT, 0.75*available_bounds.size.w, 32));
   text_layer_set_text_color(s_station_name_layer, GColorWhite);
-  text_layer_set_background_color(s_station_name_layer, GColorLightGray);
+  text_layer_set_background_color(s_station_name_layer, GColorBlack);
   text_layer_set_overflow_mode(s_station_name_layer, GTextOverflowModeTrailingEllipsis);
   text_layer_set_text_alignment(s_station_name_layer, GTextAlignmentCenter);
   text_layer_set_text(s_station_name_layer, stopName);

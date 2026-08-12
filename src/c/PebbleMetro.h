@@ -19,7 +19,4 @@ typedef struct ClaySettings {
     char STOP_2_TYPE[20];
     char STOP_3_NAME[20];
     char STOP_3_TYPE[20];
-    int STOP_1_TYPE_ID;
-    int STOP_2_TYPE_ID;
-    int STOP_3_TYPE_ID;
 } ClaySettings;

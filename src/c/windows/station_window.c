@@ -23,23 +23,6 @@ static TextLayer *s_next_stop_time_layer;
 // Passed by main to determine stop data to poll
 static int stopNumber;
 static char *stopName;
-static int stopType;
-
-static int s_content_inset;
-static int s_header_height;
-static int s_first_divider_y;
-static int s_next_departures_divider_y;
-static int s_next_departure_box_y;
-static int s_next_departure_box_x;
-static int s_next_departure_box_width;
-static int s_next_departure_box_height;
-static int s_next_stop_time_height;
-static int s_third_departures_divider_y;
-static int s_first_departure_row_y;
-static int s_second_departure_row_y;
-static int s_third_departure_row_y;
-static int s_departure_row_height;
-static int s_time_column_width;
 
 // Sync for JS communication
 static AppSync s_sync;
@@ -56,57 +39,16 @@ static void logger(char *message){
   APP_LOG(APP_LOG_LEVEL_INFO, "%s", s_buff);
 }
 
-static GColor get_header_background_color() {
-#if defined(PBL_COLOR)
-  switch (stopType) {
-    case 0:
-      return GColorFromHEX(0x0055FF);
-    case 1:
-      return GColorFromHEX(0x00AA55);
-    case 2:
-    case 4:
-      return GColorFromHEX(0xFF6600);
-    case 3:
-      return GColorFromHEX(0xAA00AA);
-    default:
-      return GColorBlack;
-  }
-#else
-  return GColorBlack;
-#endif
+static int scale_dimension(int value, int base, int target) {
+  return (value * target + (base / 2)) / base;
 }
 
-static void update_layout_metrics(GRect bounds) {
-  const bool is_round = PBL_IF_ROUND_ELSE(true, false);
-  const int base_height = is_round ? 180 : 168;
-  const int round_offset = is_round ? 6 : 0;
-  int extra_height = bounds.size.h - base_height;
+static int scale_x(int value, int width) {
+  return scale_dimension(value, 144, width);
+}
 
-  if (extra_height < 0) {
-    extra_height = 0;
-  }
-
-  s_content_inset = is_round ? 10 : 0;
-  if (bounds.size.w >= 200) {
-    s_content_inset += 2;
-  }
-
-  s_header_height = bounds.size.h >= 200 ? 38 : 32;
-  s_departure_row_height = bounds.size.h >= 200 ? 24 : 20;
-  s_time_column_width = PBL_IF_ROUND_ELSE(44, 42) + (bounds.size.w >= 200 ? 6 : 0);
-  s_next_departure_box_width = bounds.size.w >= 200 ? PBL_IF_ROUND_ELSE(88, 78) : PBL_IF_ROUND_ELSE(80, 62);
-  s_next_departure_box_height = bounds.size.h >= 200 ? 42 : 35;
-  s_next_departure_box_x = (bounds.size.w - s_next_departure_box_width) / 2;
-  s_next_stop_time_height = bounds.size.h >= 200 ? 28 : 24;
-
-  const int vertical_step = extra_height / 6;
-  s_first_departure_row_y = STATUS_BAR_LAYER_HEIGHT + 34 + round_offset + (vertical_step * 2);
-  s_first_divider_y = s_first_departure_row_y + s_departure_row_height - 2;
-  s_next_departure_box_y = s_first_divider_y + 10 + vertical_step;
-  s_next_departures_divider_y = s_next_departure_box_y + s_next_departure_box_height + 7 + vertical_step;
-  s_second_departure_row_y = s_next_departures_divider_y + 4;
-  s_third_departures_divider_y = s_second_departure_row_y + s_departure_row_height;
-  s_third_departure_row_y = s_third_departures_divider_y + 2;
+static int scale_y(int value, int height) {
+  return scale_dimension(value, 168 - STATUS_BAR_LAYER_HEIGHT, height);
 }
 
 // Send acknowledgement for a JS message and request more data
@@ -189,9 +131,6 @@ static void request_stop_info(){
 // Unload window and return to stop selection
 void station_window_unload(Window *window) {
   app_sync_deinit(&s_sync);
-  text_layer_destroy(s_station_name_layer);
-  text_layer_destroy(s_next_stop_time_layer);
-  text_layer_destroy(s_first_stop_time_layer);
   text_layer_destroy(s_first_stop_dest_layer);
   text_layer_destroy(s_second_stop_time_layer);
   text_layer_destroy(s_third_stop_time_layer);
@@ -206,41 +145,40 @@ void station_window_unload(Window *window) {
   window_destroy(window);
   s_station_window = NULL;
 
-  if (refresh_timer_handle) {
-    app_timer_cancel(refresh_timer_handle);
-    refresh_timer_handle = NULL;
-  }
+  app_timer_cancel(refresh_timer_handle);
 }
 
 // Drawing (Bolded lines)
 static void canvas_update_proc(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
+  int content_height = bounds.size.h - STATUS_BAR_LAYER_HEIGHT;
   graphics_context_set_fill_color(ctx, GColorBlack);
-  graphics_context_set_stroke_width(ctx, 3);
+  graphics_context_set_stroke_width(ctx, scale_x(3, bounds.size.w));
 
   // Next departures seperation
-  GPoint start = GPoint(s_content_inset, s_next_departures_divider_y);
-  GPoint end = GPoint(bounds.size.w - s_content_inset, s_next_departures_divider_y);
+  GPoint start = GPoint(0, STATUS_BAR_LAYER_HEIGHT + scale_y(104, content_height));
+  GPoint end = GPoint(bounds.size.w, STATUS_BAR_LAYER_HEIGHT + scale_y(104, content_height));
   graphics_draw_line(ctx, start, end);
 
   // Time to next departure rectangle background
-  GRect rect_bounds = GRect(s_next_departure_box_x, s_next_departure_box_y, s_next_departure_box_width, s_next_departure_box_height);
-  graphics_fill_rect(ctx, rect_bounds, 8, GCornersAll);
+  GRect rect_bounds = GRect(scale_x(42, bounds.size.w), STATUS_BAR_LAYER_HEIGHT + scale_y(62, content_height), scale_x(62, bounds.size.w), scale_y(35, content_height));
+  graphics_fill_rect(ctx, rect_bounds, scale_x(8, bounds.size.w), GCornersAll);
 }
 // Drawing (Thin lines)
 static void canvas_update_proc2(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
+  int content_height = bounds.size.h - STATUS_BAR_LAYER_HEIGHT;
   graphics_context_set_fill_color(ctx, GColorBlack);
-  graphics_context_set_stroke_width(ctx, 1);
+  graphics_context_set_stroke_width(ctx, scale_x(1, bounds.size.w));
 
   // First departure seperation line
-  GPoint start = GPoint(s_content_inset, s_first_divider_y);
-  GPoint end = GPoint(bounds.size.w - s_content_inset, s_first_divider_y);
+  GPoint start = GPoint(0, STATUS_BAR_LAYER_HEIGHT + scale_y(52, content_height));
+  GPoint end = GPoint(bounds.size.w, STATUS_BAR_LAYER_HEIGHT + scale_y(52, content_height));
   graphics_draw_line(ctx, start, end);
 
   // Next depatures list seperation
-  GPoint start2 = GPoint(s_content_inset, s_third_departures_divider_y);
-  GPoint end2 = GPoint(bounds.size.w - s_content_inset, s_third_departures_divider_y);
+  GPoint start2 = GPoint(0, STATUS_BAR_LAYER_HEIGHT + scale_y(128, content_height));
+  GPoint end2 = GPoint(bounds.size.w, STATUS_BAR_LAYER_HEIGHT + scale_y(128, content_height));
   graphics_draw_line(ctx, start2, end2);
   
 }
@@ -249,8 +187,13 @@ static void canvas_update_proc2(Layer *layer, GContext *ctx) {
 void station_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
-  update_layout_metrics(bounds);
-  const int content_width = bounds.size.w - (s_content_inset * 2);
+  GRect available_bounds = GRect(0, STATUS_BAR_LAYER_HEIGHT, bounds.size.w, bounds.size.h - STATUS_BAR_LAYER_HEIGHT);
+  int time_x = scale_x(3, bounds.size.w);
+  int detail_x = scale_x(45, bounds.size.w);
+  int header_height = scale_y(32, available_bounds.size.h);
+  int time_box_y = STATUS_BAR_LAYER_HEIGHT + scale_y(70, available_bounds.size.h);
+  int row_height = scale_y(32, available_bounds.size.h);
+  int destination_height = scale_y(16, available_bounds.size.h);
 
   // Create status bar
   s_status_bar = status_bar_layer_create();
@@ -269,27 +212,24 @@ void station_window_load(Window *window) {
   layer_add_child(window_layer, s_canvas_layer2);
 
   // Banner station name
-  s_station_name_layer = text_layer_create(GRect(s_content_inset, STATUS_BAR_LAYER_HEIGHT, content_width, 32));
+  s_station_name_layer = text_layer_create(GRect(0, STATUS_BAR_LAYER_HEIGHT, available_bounds.size.w, header_height));
   text_layer_set_text_color(s_station_name_layer, GColorWhite);
-  text_layer_set_background_color(s_station_name_layer, get_header_background_color());
+  text_layer_set_background_color(s_station_name_layer, GColorLightGray);
   text_layer_set_overflow_mode(s_station_name_layer, GTextOverflowModeTrailingEllipsis);
   text_layer_set_text_alignment(s_station_name_layer, GTextAlignmentCenter);
-  text_layer_set_font(s_station_name_layer, fonts_get_system_font((bounds.size.h >= 200 || PBL_IF_ROUND_ELSE(true, false)) ? FONT_KEY_GOTHIC_24_BOLD : FONT_KEY_GOTHIC_18_BOLD));
-  layer_set_frame(text_layer_get_layer(s_station_name_layer), GRect(s_content_inset, STATUS_BAR_LAYER_HEIGHT, content_width, s_header_height));
   text_layer_set_text(s_station_name_layer, stopName);
   layer_add_child(window_layer, text_layer_get_layer(s_station_name_layer));
 
   // Time till next departure
-  s_next_stop_time_layer = text_layer_create(GRect(s_content_inset, s_next_departure_box_y + ((s_next_departure_box_height - s_next_stop_time_height) / 2), content_width, s_next_stop_time_height));
+  s_next_stop_time_layer = text_layer_create(GRect(0, time_box_y, available_bounds.size.w, row_height));
   text_layer_set_text_color(s_next_stop_time_layer, GColorWhite);
   text_layer_set_background_color(s_next_stop_time_layer, GColorClear);
   text_layer_set_overflow_mode(s_next_stop_time_layer, GTextOverflowModeTrailingEllipsis);
   text_layer_set_text_alignment(s_next_stop_time_layer, GTextAlignmentCenter);
-  text_layer_set_font(s_next_stop_time_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
   layer_add_child(window_layer, text_layer_get_layer(s_next_stop_time_layer));
 
   // First depature time
-  s_first_stop_time_layer = text_layer_create(GRect(s_content_inset + 3, s_first_departure_row_y, s_time_column_width, s_departure_row_height));
+  s_first_stop_time_layer = text_layer_create(GRect(time_x, STATUS_BAR_LAYER_HEIGHT + scale_y(34, available_bounds.size.h), available_bounds.size.w, row_height));
   text_layer_set_text_color(s_first_stop_time_layer, GColorBlack);
   text_layer_set_background_color(s_first_stop_time_layer, GColorClear);
   text_layer_set_overflow_mode(s_first_stop_time_layer, GTextOverflowModeTrailingEllipsis);
@@ -297,7 +237,7 @@ void station_window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(s_first_stop_time_layer));
 
   // First departure destination
-  s_first_stop_dest_layer = text_layer_create(GRect(s_content_inset + s_time_column_width, s_first_departure_row_y, content_width - s_time_column_width, s_departure_row_height));
+  s_first_stop_dest_layer = text_layer_create(GRect(detail_x, STATUS_BAR_LAYER_HEIGHT + scale_y(34, available_bounds.size.h), available_bounds.size.w - detail_x, destination_height));
   text_layer_set_text_color(s_first_stop_dest_layer, GColorBlack);
   text_layer_set_background_color(s_first_stop_dest_layer, GColorClear);
   text_layer_set_overflow_mode(s_first_stop_dest_layer, GTextOverflowModeTrailingEllipsis);
@@ -305,7 +245,7 @@ void station_window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(s_first_stop_dest_layer));
 
   // Second depature time
-  s_second_stop_time_layer = text_layer_create(GRect(s_content_inset + 3, s_second_departure_row_y, s_time_column_width, s_departure_row_height));
+  s_second_stop_time_layer = text_layer_create(GRect(time_x, STATUS_BAR_LAYER_HEIGHT + scale_y(108, available_bounds.size.h), available_bounds.size.w, row_height));
   text_layer_set_text_color(s_second_stop_time_layer, GColorBlack);
   text_layer_set_background_color(s_second_stop_time_layer, GColorClear);
   text_layer_set_overflow_mode(s_second_stop_time_layer, GTextOverflowModeTrailingEllipsis);
@@ -313,7 +253,7 @@ void station_window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(s_second_stop_time_layer));
 
   // Second departure destination
-  s_second_stop_dest_layer = text_layer_create(GRect(s_content_inset + s_time_column_width, s_second_departure_row_y, content_width - s_time_column_width, s_departure_row_height));
+  s_second_stop_dest_layer = text_layer_create(GRect(detail_x, STATUS_BAR_LAYER_HEIGHT + scale_y(108, available_bounds.size.h), available_bounds.size.w - detail_x, destination_height));
   text_layer_set_text_color(s_second_stop_dest_layer, GColorBlack);
   text_layer_set_background_color(s_second_stop_dest_layer, GColorClear);
   text_layer_set_overflow_mode(s_second_stop_dest_layer, GTextOverflowModeTrailingEllipsis);
@@ -321,7 +261,7 @@ void station_window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(s_second_stop_dest_layer));
 
   // Third depature time
-  s_third_stop_time_layer = text_layer_create(GRect(s_content_inset + 3, s_third_departure_row_y, s_time_column_width, s_departure_row_height));
+  s_third_stop_time_layer = text_layer_create(GRect(time_x, STATUS_BAR_LAYER_HEIGHT + scale_y(130, available_bounds.size.h), available_bounds.size.w, row_height));
   text_layer_set_text_color(s_third_stop_time_layer, GColorBlack);
   text_layer_set_background_color(s_third_stop_time_layer, GColorClear);
   text_layer_set_overflow_mode(s_third_stop_time_layer, GTextOverflowModeTrailingEllipsis);
@@ -329,7 +269,7 @@ void station_window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(s_third_stop_time_layer));
 
   // Third departure destination
-  s_third_stop_dest_layer = text_layer_create(GRect(s_content_inset + s_time_column_width, s_third_departure_row_y, content_width - s_time_column_width, s_departure_row_height));
+  s_third_stop_dest_layer = text_layer_create(GRect(detail_x, STATUS_BAR_LAYER_HEIGHT + scale_y(130, available_bounds.size.h), available_bounds.size.w - detail_x, destination_height));
   text_layer_set_text_color(s_third_stop_dest_layer, GColorBlack);
   text_layer_set_background_color(s_third_stop_dest_layer, GColorClear);
   text_layer_set_overflow_mode(s_third_stop_dest_layer, GTextOverflowModeTrailingEllipsis);
@@ -356,11 +296,10 @@ void station_window_load(Window *window) {
 }
 
 // Store stop number and load station window
-void station_window_push(int stop, char *name, int stop_type) {
+void station_window_push(int stop, char *name) {
   logger("Starting station window");
   stopNumber = stop;
   stopName = name;
-  stopType = stop_type;
 
   if(!s_station_window) {
     s_station_window = window_create();

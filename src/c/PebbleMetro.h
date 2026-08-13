@@ -10,13 +10,16 @@
 #define SETTINGS_STOP_2_TYPE 35
 #define SETTINGS_STOP_3_TYPE 36
 
-// Persist Keys
-#define PERSIST_SETTINGS_KEY 2
+// Storage keys
+// NOTE:
+// - Bump settings key to reset settings
+// - Char length needs some padding to avoid 
+#define PERSIST_SETTINGS_KEY 3
 typedef struct ClaySettings {
-    char STOP_1_NAME[20];
+    char STOP_1_NAME[25+5];
     int32_t STOP_1_TYPE;
-    char STOP_2_NAME[20];
+    char STOP_2_NAME[25+5];
     int32_t STOP_2_TYPE;
-    char STOP_3_NAME[20];
+    char STOP_3_NAME[25+5];
     int32_t STOP_3_TYPE;
 } ClaySettings;

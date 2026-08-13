@@ -79,21 +79,6 @@ function makeApiRequest(query, responseCallback) {
   buildRequest(query, responseCallback)
 }
 
-// Convert a datetime string to 24hr time
-/*
-function convertTimeTo24(date) {
-  const time = new Date(date)
-  var hours = time.getHours()
-
-  // Add leading zero to minutes where required
-  var minutes = time.getMinutes()
-  if (minutes < 10)
-    minutes = '0' + minutes
-
-  return hours + ':' + minutes
-}
-*/
-
 // Convert a datetime string to 12hr time
 function convertTimeTo12(date) {
   const time = new Date(date)
@@ -148,12 +133,10 @@ function getStopData(type, station, direction = null) {
           time = departures[i].scheduled_departure_utc
         departureTimes.push(convertTimeTo12(time))
 
-        // Retrieve destination (and truncate if too long for watch)
+        // Retrieve destination
         const runs = response.runs
-        var dest = runs[departures[i].run_ref].destination_name
-        if (dest.length > 15) {
-          dest = dest.slice(0, 14) + '...'
-        }
+        var dest = runs[departures[i].run_ref].destination_name.slice(0, 25)
+
         depatureDests.push(dest)
       }
 
@@ -240,7 +223,7 @@ Pebble.addEventListener('appmessage', function (e) {
 
 // Clay
 
-var Clay = require('pebble-clay');
+var Clay = require('@rebble/clay');
 var clayConfig = require('./config.json');
 var customClay = require('./custom-clay');
 
@@ -267,17 +250,22 @@ Pebble.addEventListener('webviewclosed', function (e) {
     if (storedSettings[setting].value)
       value = storedSettings[setting].value
 
-    // Save value to localstorage (for Pebblekit)
-    localStorage.setItem(setting, value);
-
     // Manually send intested settings to watch
     if ((setting.includes('_NAME') || setting.includes('_TYPE')) && value != null) {
       // Must convert to integer
       if (setting.includes('_TYPE'))
         value = parseInt(value)
 
+      // Truncate name (limited by char size and large causes sending errors anyway)
+      if (setting.includes('_NAME')) {
+        value = value.slice(0, 25).trim()
+      }
+
       watchSettings[setting] = value
     }
+
+    // Save value to localstorage (for Pebblekit)
+    localStorage.setItem(setting, value);
   }
 
   // Send only the required settings to the watch

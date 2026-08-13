@@ -119,10 +119,9 @@ void draw_home_screen() {
 
 // Initialize the default settings
 static void default_settings() {
-// Add test settings for emulator
-  strncpy(settings.STOP_1_NAME, "Flinders St Station", sizeof(settings.STOP_1_NAME) - 1);
-  strncpy(settings.STOP_2_NAME, "...", sizeof(settings.STOP_2_NAME) - 1);
-  strncpy(settings.STOP_3_NAME, "...", sizeof(settings.STOP_3_NAME) - 1);
+  snprintf(settings.STOP_1_NAME, sizeof(settings.STOP_1_NAME), "...");
+  snprintf(settings.STOP_2_NAME, sizeof(settings.STOP_2_NAME), "...");
+  snprintf(settings.STOP_3_NAME, sizeof(settings.STOP_3_NAME), "...");
   settings.STOP_1_TYPE = 9999;
   settings.STOP_2_TYPE = 9999;
   settings.STOP_3_TYPE = 9999;

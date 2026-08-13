@@ -3,7 +3,7 @@
   "author": "Vandelay",
   "private": true,
   "dependencies": {
-    "pebble-clay": "^1.0.4"
+    "@rebble/clay": "1.0.10"
   },
   "keywords": [
     "pebble-app"
@@ -32,6 +32,36 @@
           "file": "tram.png",
           "memoryFormat": "Smallest",
           "spaceOptimization": "memory"
+        },
+        {
+          "type": "bitmap",
+          "name": "TRAIN_BIG_PNG_ICON",
+          "file": "train_big.png",
+          "memoryFormat": "Smallest",
+          "spaceOptimization": "memory",
+          "targetPlatforms": [
+            "emery"
+          ]
+        },
+        {
+          "type": "bitmap",
+          "name": "BUS_BIG_PNG_ICON",
+          "file": "bus_big.png",
+          "memoryFormat": "Smallest",
+          "spaceOptimization": "memory",
+          "targetPlatforms": [
+            "emery"
+          ]
+        },
+        {
+          "type": "bitmap",
+          "name": "TRAM_BIG_PNG_ICON",
+          "file": "tram_big.png",
+          "memoryFormat": "Smallest",
+          "spaceOptimization": "memory",
+          "targetPlatforms": [
+            "emery"
+          ]
         }
       ]
     },
@@ -68,7 +98,8 @@
     "targetPlatforms": [
       "aplite",
       "basalt",
-      "chalk"
+      "chalk",
+      "emery"
     ],
     "capabilities": [
       "configurable"

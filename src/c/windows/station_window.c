@@ -187,6 +187,8 @@ static uint32_t get_stop_icon_resource_id(int type) {
       case 2:
       case 4:
         return RESOURCE_ID_BUS_BIG_PNG_ICON;
+      case 3:
+        return RESOURCE_ID_VLINE_BIG_PNG_ICON;
       default:
         return RESOURCE_ID_TRAIN_BIG_PNG_ICON;
     }
@@ -197,6 +199,8 @@ static uint32_t get_stop_icon_resource_id(int type) {
       case 2:
       case 4:
         return RESOURCE_ID_BUS_PNG_ICON;
+      case 3:
+        return RESOURCE_ID_VLINE_PNG_ICON;
       default:
         return RESOURCE_ID_TRAIN_PNG_ICON;
     }

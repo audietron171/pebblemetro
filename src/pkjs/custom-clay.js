@@ -103,7 +103,7 @@ module.exports = function(minified) {
             info.routes = routes
           }
 
-          // Provide stop description
+          // Provide stop description (including transport type and served routes)
           info.description += '[' + stopType + ']'
           info.description += ' ' + stop.stop_name
           if (info.routes.length){

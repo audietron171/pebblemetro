@@ -35,6 +35,13 @@
         },
         {
           "type": "bitmap",
+          "name": "VLINE_PNG_ICON",
+          "file": "vline.png",
+          "memoryFormat": "Smallest",
+          "spaceOptimization": "memory"
+        },
+        {
+          "type": "bitmap",
           "name": "TRAIN_BIG_PNG_ICON",
           "file": "train_big.png",
           "memoryFormat": "Smallest",
@@ -57,6 +64,16 @@
           "type": "bitmap",
           "name": "TRAM_BIG_PNG_ICON",
           "file": "tram_big.png",
+          "memoryFormat": "Smallest",
+          "spaceOptimization": "memory",
+          "targetPlatforms": [
+            "emery"
+          ]
+        },
+        {
+          "type": "bitmap",
+          "name": "VLINE_BIG_PNG_ICON",
+          "file": "vline_big.png",
           "memoryFormat": "Smallest",
           "spaceOptimization": "memory",
           "targetPlatforms": [
@@ -98,7 +115,7 @@
     "targetPlatforms": [
       "aplite",
       "basalt",
-      "chalk",
+      "diorite",
       "emery"
     ],
     "capabilities": [

@@ -1,6 +1,6 @@
 {
-  "version": "2.0.0",
-  "author": "Vandelay",
+  "version": "1.0.1",
+  "author": "audietron171",
   "private": true,
   "dependencies": {
     "@rebble/clay": "1.0.10"
@@ -79,6 +79,14 @@
           "targetPlatforms": [
             "emery"
           ]
+        },
+        {
+          "type": "bitmap",
+          "name": "APP_PNG_ICON",
+          "file": "app_icon.png",
+          "memoryFormat": "Smallest",
+          "spaceOptimization": "memory",
+          "menuIcon": true
         }
       ]
     },
@@ -106,7 +114,7 @@
       "SETTINGS_STOP_3_TYPE": 36
     },
     "enableMultiJS": true,
-    "displayName": "Pebble Metro",
+    "displayName": "PebbleMetro",
     "watchapp": {
       "onlyShownOnCommunication": false,
       "hiddenApp": false,
@@ -116,7 +124,8 @@
       "aplite",
       "basalt",
       "diorite",
-      "emery"
+      "emery",
+      "flint"
     ],
     "capabilities": [
       "configurable"
